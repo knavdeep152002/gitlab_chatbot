@@ -1,0 +1,16 @@
+{
+  "handbook": {
+    "path": "gitlab-com/content-sites/handbook",
+    "api_path": "content/handbook",
+    "subdir": "content/handbook",
+    "extensions": [".md"],
+    "collection_id": "handbook"
+  },
+  "direction": {
+    "path": "gitlab-com/www-gitlab-com",
+    "api_path": "source/direction/",
+    "subdir": "source/direction/",
+    "extensions": [".md", ".md.erb"],
+    "collection_id": "direction"
+  }
+}
