@@ -107,7 +107,6 @@ class CRUDCapability(Generic[V]):
         order_by: list[str] | None = None,
         join_type: Literal["OUTER", "FULL"] | None = None,
     ) -> list[dict[str, Any]]:
-        print("debug inside list cap")
         if columns is None:
             if join_data:
                 stmt = select(self.resource_db, join_data[0])
@@ -212,7 +211,6 @@ class CRUDCapability(Generic[V]):
         self,
         data: dict[str, Any],
     ) -> dict[str, Any]:
-        print("debug: create resource ", data)
         resource = self.resource_db(**data)  # type: ignore
         session = self.get_sync_session()
         session.add(resource)
@@ -253,7 +251,6 @@ class CRUDCapability(Generic[V]):
         join_data: JoinData | None = None,  # type: ignore
         where: list["ColumnExpressionArgument[bool]"] | None = None,
     ) -> dict[str, Any] | None:
-        # print(where)
         if resource_id is None:
             stmt = select(self.resource_db)  # type: ignore
         else:
