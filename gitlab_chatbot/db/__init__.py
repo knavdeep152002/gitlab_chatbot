@@ -22,6 +22,7 @@ from sqlalchemy import (
     asc,
     desc,
 )
+from sqlalchemy import delete as sqlalchemy_delete
 from sqlalchemy.orm import Session, scoped_session, sessionmaker
 from gitlab_chatbot.settings import config
 
@@ -103,7 +104,7 @@ class CRUDCapability(Generic[V]):
         where: list["ColumnExpressionArgument[bool]"] | None = None,
         limit: int | None = None,
         offset: int | None = None,
-        like_query: dict[str, str] | None = None, 
+        like_query: dict[str, str] | None = None,
         order_by: list[str] | None = None,
         join_type: Literal["OUTER", "FULL"] | None = None,
     ) -> list[dict[str, Any]]:
@@ -226,23 +227,31 @@ class CRUDCapability(Generic[V]):
         join_data: JoinData | None = None,  # type: ignore
         where: list["ColumnExpressionArgument[bool]"] | None = None,
     ) -> dict[str, Any] | None:
-        if resource_id is None:
-            stmt = select(self.resource_db)
-        else:
-            stmt = select(self.resource_db).where(self.resource_db.id == resource_id)  # type: ignore
-        if join_data is not None:
-            stmt = stmt.join(*join_data)
-        if where is not None:
-            stmt = stmt.where(*where)
         session = self.get_sync_session()
-        resource = session.scalars(stmt).first()
-        if resource is None:
-            return None
-        session.delete(resource)
-        session.flush()
-        session.commit()
+
+        if resource_id is not None:
+            stmt = select(self.resource_db).where(
+                getattr(self.resource_db, "id") == resource_id
+            )
+            resource = session.scalars(stmt).first()
+            if resource is None:
+                return None
+            session.delete(resource)
+            session.flush()
+            session.commit()
+            session.close()
+            return self.db_row_to_model(resource)
+
+        if where is not None:
+            delete_stmt = sqlalchemy_delete(self.resource_db).where(*where)
+            result = session.execute(delete_stmt)
+            deleted_count = result.rowcount if hasattr(result, "rowcount") else None
+            session.commit()
+            session.close()
+            return {"deleted_count": deleted_count}
+
         session.close()
-        return self.db_row_to_model(resource)
+        return None
 
     def update_resource(
         self,

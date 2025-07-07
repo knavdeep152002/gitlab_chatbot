@@ -5,4 +5,6 @@ class CheckpointState(str, enum.Enum):
     PROCESSED = "PROCESSED"
     EMBEDDED = "EMBEDDED"
     DELETED = "DELETED"
+    PROCESS_ERROR = "PROCESS_ERROR"
+    EMBED_ERROR = "EMBED_ERROR"
     ERROR = "ERROR"

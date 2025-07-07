@@ -8,7 +8,7 @@ from typing import Set, Tuple
 from gitlab_chatbot.settings import config
 from gitlab_chatbot.models.document_db import CommitTracker, Checkpoint, Document
 from gitlab_chatbot.db.crud_helper import checkpoint_crud, commit_tracker_crud
-from gitlab_chatbot.workers.files_processor import document_crud, process_file
+from gitlab_chatbot.workers.files_processor import document_crud
 from gitlab_chatbot.workers.gitlab_utils import (
     get_project_id,
     get_commits,
@@ -79,7 +79,12 @@ def determine_file_changes(
 
 @app.task(
     name="scraper.files_fetcher.fetch_files",
-    opts={"acks_late": True, "max_retries": 3, "retry_backoff": True},
+    opts={
+        "queue": "ingest",
+        "acks_late": True,
+        "max_retries": 3,
+        "retry_backoff": True,
+    },
 )
 def fetch_files():
     logger.info("\U0001f50d Starting file fetch beat task...")
@@ -122,11 +127,15 @@ def fetch_files():
                             "state": CheckpointState.PROCESS_PENDING,
                         }
                     )
-                process_file.delay(
-                    project_id=project_id,
-                    file_path=file_path,
-                    commit_sha=latest_commit,
-                    collection_id=repo_config["collection_id"],
+                app.send_task(
+                    "process_file",
+                    args=[
+                        project_id,
+                        file_path,
+                        latest_commit,
+                        repo_config["collection_id"],
+                    ],
+                    queue="processor",
                 )
 
             for file_path in sorted(to_delete):

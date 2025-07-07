@@ -37,17 +37,14 @@ downgrade:
 revision message:
     cd gitlab_chatbot && poetry run alembic revision --autogenerate -m "{{message}}"
 
-
 shell:
     $SHELL
 
-# Run Celery worker for files processor
 celery-worker:
-    poetry run celery -A gitlab_chatbot.workers.files_processor worker --loglevel=info --pool gevent --concurrency=12
+    poetry run celery -A gitlab_chatbot.workers.files_processor worker --loglevel=info --pool threads --concurrency=12
 
 celery-embed:
-    poetry run celery -A gitlab_chatbot.workers.embed worker --loglevel=info --pool prefork --concurrency=32 -Q embedding
+    poetry run celery -A gitlab_chatbot.workers.embed worker --loglevel=info --pool gevent --concurrency=48 -Q embedding
 
-# Run Celery beat scheduler
 celery-beat:
     poetry run celery -A gitlab_chatbot.workers.files_fetcher beat --loglevel=info

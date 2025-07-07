@@ -1,5 +1,4 @@
 import logging
-from typing import List
 from celery import Celery
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from sqlalchemy.sql import text
@@ -25,12 +24,20 @@ DEVICE = "cuda" if cuda.is_available() else "cpu"
 
 # --- Setup embedding model ---
 embedding_model = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2",
+    model_name=config.huggingface_model,
     model_kwargs={"device": DEVICE},
 )
 
 
-@app.task(name="embed_chunk", bind=True, max_retries=3, default_retry_delay=60)
+@app.task(
+    name="embed_chunk",
+    bind=True,
+    max_retries=3,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_jitter=True,
+    default_retry_delay=60,
+)
 def embed_chunk(self, source: str, chunk_index: int, collection_id: str):
     logger.info(f"🔢 Embedding chunk {chunk_index} from {source}")
 
@@ -77,7 +84,7 @@ def embed_chunk(self, source: str, chunk_index: int, collection_id: str):
     except Exception as e:
         logger.error(f"❌ Embedding failed for {source}:{chunk_index}: {e}")
         checkpoint_crud.update_resource(
-            data={"state": CheckpointState.ERROR, "error_message": str(e)},
+            data={"state": CheckpointState.EMBED_ERROR, "error_message": str(e)},
             where=[Checkpoint.file_path == source],
         )
         self.retry(exc=e)

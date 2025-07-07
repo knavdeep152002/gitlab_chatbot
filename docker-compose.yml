@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: ankane/pgvector
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gitlab
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    environment:
+      SERVICE_TYPE: api
+      DB_URL: postgresql://postgres:postgres@postgres:5432/optimize
+      BROKER_URL: amqp://guest:guest@rabbitmq:5672/
+      GEMINI_API_KEY: AIzaSyCs8DWkDjULEdvG47XtRGXFxQ3ZK55ZyWs
+    depends_on:
+      - postgres
+      - rabbitmq
+    ports:
+      - "8000:8000"
+
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    environment:
+      SERVICE_TYPE: celery-worker
+      WORKER_CONCURRENCY: 12
+      DB_URL: postgresql://postgres:postgres@postgres:5432/optimize
+      BROKER_URL: amqp://guest:guest@rabbitmq:5672/
+      GEMINI_API_KEY: ''
+      WORKER_QUEUE: processor
+    depends_on:
+      - postgres
+      - rabbitmq
+    # To scale: docker-compose up --scale celery-worker=2
+
+  celery-embed:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    environment:
+      SERVICE_TYPE: celery-embed
+      WORKER_CONCURRENCY: 48
+      WORKER_QUEUE: embedding
+      DB_URL: postgresql://postgres:postgres@postgres:5432/optimize
+      BROKER_URL: amqp://guest:guest@rabbitmq:5672/
+      GEMINI_API_KEY: ''
+    depends_on:
+      - postgres
+      - rabbitmq
+    # To scale: docker-compose up --scale celery-embed=3
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    environment:
+      SERVICE_TYPE: celery-beat
+      DB_URL: postgresql://postgres:postgres@postgres:5432/optimize
+      BROKER_URL: amqp://guest:guest@rabbitmq:5672/
+      GEMINI_API_KEY: ''
+      WORKER_QUEUE: ingest
+    depends_on:
+      - postgres
+      - rabbitmq
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    environment:
+      GITLAB_CHAT_API_URL: http://localhost:8000/api/v1/chatbot
+    depends_on:
+      - postgres
+      - api
+    ports:
+      - "8501:8501"
+      - "8502:8502"
+
+volumes:
+  pgdata:

@@ -24,7 +24,7 @@ def db_session():
     session.close()
 
 def test_hybrid_search_basic(db_session):
-    query = "DevOps platform"
+    query = "What channel in slack should we use for alerting the CFO for his approval?"
     results = generate_rag_context(
         session=db_session,
         query=query,
@@ -32,6 +32,8 @@ def test_hybrid_search_basic(db_session):
     assert isinstance(results, tuple)
     assert len(results) == 2
     context, sources = results
+    print(f"Context: {context}")
+    print(f"Sources: {sources}")
     assert isinstance(context, str)
     assert isinstance(sources, set)
     assert len(sources) > 0
