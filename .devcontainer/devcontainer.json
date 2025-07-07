@@ -1,0 +1,11 @@
+{
+  "name": "Docker Compose Dev Environment",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "api",  // change this to your main service name to open the terminal in
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [7860, 8000, 8501], // expose your app, API, streamlit ports
+  "extensions": [
+    "ms-azuretools.vscode-docker"
+  ],
+  "postCreateCommand": "docker-compose up -d"
+}
