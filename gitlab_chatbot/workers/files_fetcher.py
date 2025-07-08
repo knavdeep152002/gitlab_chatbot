@@ -25,7 +25,7 @@ app = Celery("files_fetcher", broker=config.celery_broker_url)
 app.conf.beat_schedule = {
     "fetch-gitlab-files-every-6-hours": {
         "task": "scraper.files_fetcher.fetch_files",
-        "schedule": crontab(hour="*/6"),
+        "schedule": crontab(hour="*/3"),
     }
 }
 app.conf.update(timezone="UTC")

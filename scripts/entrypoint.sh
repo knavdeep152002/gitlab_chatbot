@@ -12,7 +12,7 @@ celery-embed)
   exec poetry run celery -A gitlab_chatbot.workers.embed worker --loglevel=info --pool gevent --concurrency=${WORKER_CONCURRENCY:-48} -Q ${WORKER_QUEUE:-embedding} $EXTRA_ARGS
   ;;
 celery-beat)
-  exec poetry run celery -A gitlab_chatbot.workers.files_fetcher beat --loglevel=info
+  exec poetry run celery -A gitlab_chatbot.workers.files_fetcher worker --beat -Q celery --loglevel=info --pool gevent
   ;;
 *)
   echo "Unknown SERVICE_TYPE: $SERVICE_TYPE"
